@@ -1,0 +1,95 @@
+---
+title       : Practical Machine Learning. Course Project.
+author      : Fernando Perez
+output      : pdf_document
+---
+# Practical Machine Learning. Course Project
+## Introduction 
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible 
+to collect a large amount of data about personal activity relatively inexpensively. 
+Using data from accelerometers on the belt, forearm, arm, and dumbel, the project goal 
+is to predict the manner in which these exercise was done (correcty and incorrectly in 5 different ways).
+
+The training data for this project are available here: 
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+## Data Preparation & Exploratory Analysis
+Load data and import libraries
+```{r}
+library(ggplot2)
+library(caret)
+
+setwd('/Users/fernando_perez/Documents/workspace_R/coursera/PracticalMachineLearning')
+
+df <- read.csv("./pml-training.csv")
+```
+Looking a summary of the data, it seems there are a lot of 0's and NAs values. 
+The following procedure removes columns where values are mostly 0. For this step we will take care of NAs as a 0.
+
+### Remove Zero Values
+```{r}
+numOriginalCols <- dim(df)[2]
+dfTmp <- replace(df, is.na(df), 0)
+idx <- nearZeroVar(dfTmp, saveMetrics=FALSE)
+df <- df[,-idx]
+numRmCols <- length(idx)
+```
+number of original columns **`r numOriginalCols`**  
+number of removed columns  **`r numRmCols`**
+
+### Remove sample specific columns
+The first 6 columns are the subject's name, exercise timestamps and window id, using this variables for the trainning will cause a clear overfit of the model to the training / subject data, so we eliminate them. 
+```{r}
+df <- df[,-c(1:6)]
+```
+
+## Cross Validation
+To avoid overfitting the model and evaluate its accuracy with new data, we split data into two different data sets, 
+one for training with 60% and another one for testing 40%.
+```{r}
+set.seed(123)
+inTrain <- createDataPartition(y=df$classe, p=0.6, list=FALSE)
+training <- df[inTrain,]
+testing <- df[-inTrain,]
+```
+
+## Model Training
+After testing with different methods I choose a gradient boosting method (gbm) due to the balance between precission and execution time. I couldn't test some methods as Random Forest, because it takes more than a night (10h) to execute in my laptop.
+I observed a little gain of .02% if the trainning includes a preprocessing for centering and scaling the data.
+I also tried removing highly correlated variables with findCorrelation process and a cutoff in .75, but in this case accurary was .02% lower, so I discarded it.
+```{r}
+modFit <- train(classe ~ ., 
+                method="gbm", 
+                data=training, 
+                preProcess=c('center','scale'),
+                verbose=FALSE)
+```
+
+### Confusion Matrix
+This is the confusion matrix of the model applied against test dataset.
+```{r}
+predictTest <- predict(modFit,testing)
+table(predictTest, testing$classe)
+
+tb<- as.data.frame(table(predictTest, testing$classe))
+ok <- sum(tb[tb$predictTest == tb$Var2,3])
+ko <- sum(tb[tb$predictTest != tb$Var2,3])
+okPerc <- (1 - ko / (ok - ko)) * 100
+```
+The model is able to predict ok **`r okPerc`**% of the cases
+
+### Model detalis
+The final values used for the model were 150 trees with a depth = 3
+
+```{r}
+print(modFit)
+ggplot(modFit)
+```
+
+### Important variables
+Following chart shows the 20 most important predictor variables for this model
+```{r}
+gbmImp <- varImp(modFit)
+plot(gbmImp, top = 20)
+```
+
