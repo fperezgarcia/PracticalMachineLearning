@@ -93,3 +93,16 @@ gbmImp <- varImp(modFit)
 plot(gbmImp, top = 20)
 ```
 
+## Conclusion
+Gradient Boosting seems to be a good method for predicting  the manner in which 
+physical exercises are done.   
+Validating the model with a new data set available at
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+with 20 new cases, the prediction was right in 19 cases, confirming the 95% of 
+accuracy.   
+It is important to avoid nearzero values and preprocess source data with centering
+and scaling.
+
+### Future Work
+Try other methods as Random Forest with the more powerful infrastructure, and compare
+results.
