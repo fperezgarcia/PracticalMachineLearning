@@ -69,18 +69,14 @@ modFit <- train(classe ~ .,
 This is the confusion matrix of the model applied against test dataset.
 ```{r}
 predictTest <- predict(modFit,testing)
-table(predictTest, testing$classe)
-
-tb<- as.data.frame(table(predictTest, testing$classe))
-ok <- sum(tb[tb$predictTest == tb$Var2,3])
-ko <- sum(tb[tb$predictTest != tb$Var2,3])
-okPerc <- (1 - ko / (ok - ko)) * 100
+cm <- confusionMatrix(data = predictTest, testing$classe)
+cm
+accuracy <- cm$overall[[1]] * 100
 ```
-The model is able to predict ok **`r okPerc`**% of the cases
+The model has an accuracy of  **`r accuracy`**% of the cases
 
 ### Model detalis
 The final values used for the model were 150 trees with a depth = 3
-
 ```{r}
 print(modFit)
 ggplot(modFit)
